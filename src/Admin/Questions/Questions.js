@@ -23,7 +23,7 @@ function QuestionsData({ questions, onToggleStatus }) {
       // If trying to activate a question, show warning about deactivating others
       if (!currentStatus) {
         const activeQuestions = questions.filter(
-          (q) => q.isActive !== false && q.id !== questionId
+          (q) => q.isActive === true && q.id !== questionId
         );
 
         let confirmText = "Are you sure you want to activate this question?";
@@ -74,7 +74,7 @@ function QuestionsData({ questions, onToggleStatus }) {
       <h1 className="text-2xl font-bold mb-4">Questions</h1>
 
       {/* Warning message if more than one active question */}
-      {questions.filter((q) => q.isActive !== false).length > 1 && (
+      {questions.filter((q) => q.isActive === true).length > 1 && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
           <p className="font-bold">Warning!</p>
           <p>
@@ -103,12 +103,12 @@ function QuestionsData({ questions, onToggleStatus }) {
                 <td className="py-2">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      q.isActive !== false // Default to active if undefined
+                      q.isActive === true
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {q.isActive !== false ? "Active" : "Inactive"}
+                    {q.isActive === true ? "Active" : "Inactive"}
                   </span>
                 </td>
                 <td className="py-2">
@@ -123,15 +123,15 @@ function QuestionsData({ questions, onToggleStatus }) {
                   </Link>
                   <button
                     onClick={() =>
-                      handleToggleStatus(q.id, q.isActive !== false)
+                      handleToggleStatus(q.id, q.isActive === true)
                     }
                     className={`${
-                      q.isActive !== false ? "text-green-500" : "text-red-500"
+                      q.isActive === true ? "text-green-500" : "text-red-500"
                     } hover:opacity-70`}
-                    title={q.isActive !== false ? "Deactivate" : "Activate"}
+                    title={q.isActive === true ? "Deactivate" : "Activate"}
                   >
                     <FontAwesomeIcon
-                      icon={q.isActive !== false ? faToggleOn : faToggleOff}
+                      icon={q.isActive === true ? faToggleOn : faToggleOff}
                     />
                   </button>
                 </td>
@@ -164,21 +164,24 @@ function Questions() {
   const handleToggleStatus = async (questionId, newStatus) => {
     try {
       if (newStatus) {
-        // If activating a question, first deactivate all other questions
-        const otherActiveQuestions = questions.filter(
-          (q) => q.isActive !== false && q.id !== questionId
-        );
+        // FORCE UPDATE: When activating a question, deactivate ALL other questions first
+        const otherQuestions = questions.filter((q) => q.id !== questionId);
 
-        // Deactivate all other questions first
-        for (const question of otherActiveQuestions) {
-          await axios.put(
-            `${Domain()}/questions/${question.id}`,
-            { isActive: false },
-            {
-              headers: { Authorization: "Bearer " + AuthToken() },
-            }
+        // Batch deactivate all other questions in parallel for better performance
+        const deactivatePromises = otherQuestions
+          .filter((q) => q.isActive === true) // Only update actually active questions
+          .map((question) =>
+            axios.put(
+              `${Domain()}/questions/${question.id}`,
+              { isActive: false },
+              {
+                headers: { Authorization: "Bearer " + AuthToken() },
+              }
+            )
           );
-        }
+
+        // Wait for all deactivation requests to complete
+        await Promise.all(deactivatePromises);
 
         // Then activate the selected question
         await axios.put(
@@ -189,7 +192,7 @@ function Questions() {
           }
         );
 
-        // Update local state - deactivate all others, activate selected
+        // Update local state - ensure ONLY the selected question is active
         setQuestions((prev) =>
           prev.map((q) => ({
             ...q,
@@ -217,6 +220,68 @@ function Questions() {
     }
   };
 
+  // Optional: Add a force fix function to handle multiple active questions
+  const forceFixActiveQuestions = async () => {
+    try {
+      const activeQuestions = questions.filter((q) => q.isActive === true);
+
+      if (activeQuestions.length <= 1) {
+        Swal.fire("Info", "No multiple active questions found.", "info");
+        return;
+      }
+
+      const result = await Swal.fire({
+        title: "Fix Multiple Active Questions?",
+        text: `Found ${activeQuestions.length} active questions. Keep the most recent one and deactivate others?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, fix it!",
+        cancelButtonText: "Cancel",
+      });
+
+      if (result.isConfirmed) {
+        // Sort by creation date and keep the most recent
+        const sortedActive = [...activeQuestions].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        const keepActive = sortedActive[0];
+        const toDeactivate = sortedActive.slice(1);
+
+        // Deactivate all except the most recent
+        const deactivatePromises = toDeactivate.map((question) =>
+          axios.put(
+            `${Domain()}/questions/${question.id}`,
+            { isActive: false },
+            {
+              headers: { Authorization: "Bearer " + AuthToken() },
+            }
+          )
+        );
+
+        await Promise.all(deactivatePromises);
+
+        // Update local state
+        setQuestions((prev) =>
+          prev.map((q) => ({
+            ...q,
+            isActive: q.id === keepActive.id ? true : false,
+          }))
+        );
+
+        Swal.fire(
+          "Success!",
+          `Fixed! Only the most recent question (${keepActive.question.substring(
+            0,
+            50
+          )}...) remains active.`,
+          "success"
+        );
+      }
+    } catch (error) {
+      Swal.fire("Error", "Failed to fix active questions", "error");
+    }
+  };
+
   const QuestionsContent = (
     <div className="p-4">
       {loading ? (
@@ -232,13 +297,23 @@ function Questions() {
               >
                 <FontAwesomeIcon icon={faPlus} /> New Question
               </Link>
+
+              {/* Force Fix Button - only show if multiple active questions exist */}
+              {questions.filter((q) => q.isActive === true).length > 1 && (
+                <button
+                  onClick={forceFixActiveQuestions}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-orange-600 flex items-center gap-2"
+                >
+                  Fix Multiple Active
+                </button>
+              )}
             </div>
 
             {/* Status Filter */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">
                 Total: {questions.length} | Active:{" "}
-                {questions.filter((q) => q.isActive !== false).length} |
+                {questions.filter((q) => q.isActive === true).length} |
                 Inactive: {questions.filter((q) => q.isActive === false).length}
               </span>
             </div>
