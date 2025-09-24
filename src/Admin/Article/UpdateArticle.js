@@ -13,6 +13,7 @@ import {
 import Domain from "../../Api/Api";
 import { AuthToken } from "../../Api/Api";
 import Loading from "../../layouts/Loading";
+import tagsData from "../tagsPlaceholder.json";
 
 function GetArticle() {
   const { id } = useParams();
@@ -25,10 +26,11 @@ function GetArticle() {
     subtitle: "",
     body: "",
     type: "",
+    tags: "", // new field
     image: [],
     thumbnail: null,
     linkDownload: "",
-    createdAt: "", // Added for publication date
+    createdAt: "",
   });
 
   useEffect(() => {
@@ -50,7 +52,8 @@ function GetArticle() {
           title: article.title,
           subtitle: article.subtitle || "",
           body: article.body,
-          type: article.type,
+          type: article.type ? article.type.toLowerCase() : "",
+          tags: article.tags ? article.tags.toLowerCase() : "",
           image: article.images || [],
           thumbnail: article.thumbnail || null,
           linkDownload: article.linkDownload || "",
@@ -156,7 +159,11 @@ function GetArticle() {
         const payload = new FormData();
 
         Object.keys(formData).forEach((key) => {
-          if (key === "image") {
+          if (key === "type") {
+            payload.append("type", formData.type.toLowerCase());
+          } else if (key === "tags") {
+            payload.append("tags", formData.tags.toLowerCase());
+          } else if (key === "image") {
             formData.image.forEach((file) => {
               if (typeof file !== "string") {
                 payload.append("image", file);
@@ -203,10 +210,15 @@ function GetArticle() {
             title: "Updated!",
             text: "The article has been successfully updated.",
           }).then(() => {
-            navigate("/Admin/Articles");
+            if (formData.type.toLowerCase() === "publication") {
+              navigate("/Admin/Publications");
+            } else {
+              navigate("/Admin/Articles");
+            }
           });
         }
       })
+
       .catch((error) => {
         console.error("Error updating article:", error);
         Swal.fire({
@@ -342,6 +354,28 @@ function GetArticle() {
                 readOnly
                 className="w-full px-3 py-2 border rounded-lg bg-gray-100"
               />
+            </div>
+            {/* Tags Select */}
+            <div className="mb-4">
+              <label className="block text-gray-700 font-bold mb-2">Tags</label>
+              <select
+                name="tags"
+                value={formData.tags}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400"
+                required
+              >
+                {!formData.tags && (
+                  <option value="" disabled>
+                    Select Tag
+                  </option>
+                )}
+                {Object.keys(tagsData.TAGS).map((key) => (
+                  <option key={key} value={key.toLowerCase()}>
+                    {tagsData.TAGS[key]}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Pictures Upload */}

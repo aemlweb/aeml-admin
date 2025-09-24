@@ -31,7 +31,7 @@ function ArticlesData({ articlesData, title }) {
           <thead className="bg-gray-800 text-white">
             <tr>
               <th className="w-1/5 py-2">Title</th>
-              <th className="w-1/5 py-2">Type</th>
+              <th className="w-1/5 py-2">Tags</th>
               <th className="w-1/5 py-2">Date Created</th>
               <th className="w-1/5 py-2">Actions</th>
             </tr>
@@ -45,7 +45,7 @@ function ArticlesData({ articlesData, title }) {
                   </div>
                 </td>
 
-                <td className="py-2">{article.type}</td>
+                <td className="py-2">{article.tags}</td>
                 <td className="py-2">
                   {moment(article.created_at || article.createdAt).format(
                     "MMM D, YYYY [at] h:mm A"

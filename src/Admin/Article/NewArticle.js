@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import tagsData from "../tagsPlaceholder.json"; // import json
 
 const TYPES = {
   KEGIATAN: "kegiatan",
@@ -18,9 +19,10 @@ const TYPES = {
 const MAX_TITLE_LENGTH = 100;
 const MAX_SUBTITLE_LENGTH = 120;
 const MAX_IMAGES = {
-  [TYPES.KEGIATAN]: 1, // kegiatan max 1 image
-  [TYPES.PUBLICATION]: 1, // contoh: publikasi max 5 image (bisa ubah sesuai kebutuhan)
+  [TYPES.KEGIATAN]: 1,
+  [TYPES.PUBLICATION]: 1,
 };
+
 function NewArticle() {
   const location = useLocation();
   const [title, setTitle] = useState("");
@@ -28,17 +30,18 @@ function NewArticle() {
   const [body, setBody] = useState("");
   const [subtitleError, setSubtitleError] = useState("");
   const [titleError, setTitleError] = useState("");
-  const [images, setImages] = useState([]); // For multiple images
+  const [images, setImages] = useState([]);
   const [linkDownload, setLinkDownload] = useState("");
   const preselectedType = location.state?.initialType || "";
   const [type, setType] = useState(preselectedType);
-  const [createdAt, setCreatedAt] = useState(""); // Changed to string for date input
+  const [createdAt, setCreatedAt] = useState("");
+  const [tag, setTag] = useState(""); // NEW TAG state
 
   const navigate = useNavigate();
 
   const handleImagesChange = (e) => {
     const files = Array.from(e.target.files);
-    const maxImages = MAX_IMAGES[type] || 10; // default 10 kalau ga ada type
+    const maxImages = MAX_IMAGES[type] || 10;
 
     if (images.length + files.length > maxImages) {
       Swal.fire(
@@ -55,9 +58,9 @@ function NewArticle() {
     }));
 
     if (type === TYPES.KEGIATAN) {
-      setImages(newImages); // Replace existing image for kegiatan
+      setImages(newImages);
     } else {
-      setImages((prevImages) => [...prevImages, ...newImages]); // Append for other types
+      setImages((prevImages) => [...prevImages, ...newImages]);
     }
   };
 
@@ -90,7 +93,7 @@ function NewArticle() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!title || images.length === 0 || !type) {
+    if (!title || images.length === 0 || !type || !tag) {
       Swal.fire("Error", "Please fill in all required fields", "error");
       return;
     }
@@ -119,6 +122,7 @@ function NewArticle() {
     formData.append("title", title);
     formData.append("subtitle", subtitle);
     formData.append("type", type);
+    formData.append("tags", tag); // add TAG to payload
 
     images.forEach(({ file }) => formData.append("image", file));
     if (linkDownload) formData.append("linkDownload", linkDownload);
@@ -131,7 +135,7 @@ function NewArticle() {
       // Convert date string to ISO format
       const dateValue = new Date(createdAt).toISOString();
       formData.append("createdAt", dateValue);
-      console.log("Adding createdAt to payload:", dateValue); // Debug log
+      console.log("Adding createdAt to payload:", dateValue);
     }
 
     Swal.fire({
@@ -310,6 +314,28 @@ function NewArticle() {
                   ))}
                 </select>
               )}
+            </div>
+
+            {/* Tags Select */}
+            <div className="mb-4">
+              <label className="block text-gray-700 font-bold mb-2">Tag</label>
+              <select
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400"
+                required
+              >
+                {!tag && (
+                  <option value="" disabled>
+                    Select Tag
+                  </option>
+                )}
+                {Object.entries(tagsData.TAGS).map(([key, value]) => (
+                  <option key={key} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Images Upload */}
