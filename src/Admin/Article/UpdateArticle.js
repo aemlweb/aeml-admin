@@ -53,7 +53,7 @@ function GetArticle() {
           subtitle: article.subtitle || "",
           body: article.body,
           type: article.type ? article.type.toLowerCase() : "",
-          tags: article.tags ? article.tags.toLowerCase() : "",
+          tags: article.tags,
           image: article.images || [],
           thumbnail: article.thumbnail || null,
           linkDownload: article.linkDownload || "",
