@@ -16,8 +16,8 @@ const TYPES = {
   KEGIATAN: "kegiatan",
   PUBLICATION: "publication",
 };
-const MAX_TITLE_LENGTH = 100;
-const MAX_SUBTITLE_LENGTH = 120;
+const MAX_TITLE_LENGTH = 70;
+const MAX_SUBTITLE_LENGTH = 200;
 const MAX_IMAGES = {
   [TYPES.KEGIATAN]: 1,
   [TYPES.PUBLICATION]: 1,
@@ -207,15 +207,27 @@ function NewArticle() {
               <label className="block text-gray-700 font-bold mb-2">
                 Title
               </label>
-              <input
-                type="text"
-                value={title}
-                onChange={handleTitleChange}
-                className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 ${
-                  titleError ? "border-red-500" : ""
-                }`}
-                required
-              />
+              {title.length >= MAX_TITLE_LENGTH ? (
+                <textarea
+                  value={title}
+                  onChange={handleTitleChange}
+                  className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 ${
+                    titleError ? "border-red-500" : ""
+                  }`}
+                  rows="3"
+                  required
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={title}
+                  onChange={handleTitleChange}
+                  className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 ${
+                    titleError ? "border-red-500" : ""
+                  }`}
+                  required
+                />
+              )}
               {titleError && (
                 <p className="text-red-500 text-sm mt-1">{titleError}</p>
               )}
@@ -226,14 +238,25 @@ function NewArticle() {
               <label className="block text-gray-700 font-bold mb-2">
                 Subtitle
               </label>
-              <input
-                type="text"
-                value={subtitle}
-                onChange={handleSubtitleChange}
-                className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 ${
-                  subtitleError ? "border-red-500" : ""
-                }`}
-              />
+              {subtitle.length >= MAX_SUBTITLE_LENGTH ? (
+                <textarea
+                  value={subtitle}
+                  onChange={handleSubtitleChange}
+                  className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 ${
+                    subtitleError ? "border-red-500" : ""
+                  }`}
+                  rows="4"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={subtitle}
+                  onChange={handleSubtitleChange}
+                  className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 ${
+                    subtitleError ? "border-red-500" : ""
+                  }`}
+                />
+              )}
               {subtitleError && (
                 <p className="text-red-500 text-sm mt-1">{subtitleError}</p>
               )}
@@ -324,37 +347,67 @@ function NewArticle() {
                 onChange={(e) => setTag(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400"
                 required
+                disabled={!type} // disable sampai type dipilih
               >
                 {!tag && (
                   <option value="" disabled>
-                    Select Tag
+                    {type ? "Select Tag" : "Select Type first"}
                   </option>
                 )}
-                {Object.entries(tagsData.TAGS).map(([key, value]) => (
-                  <option key={key} value={value}>
-                    {value}
-                  </option>
-                ))}
+
+                {type === TYPES.KEGIATAN &&
+                  Object.entries(tagsData.KEGIATAN_TAGS || {}).map(
+                    ([key, value]) => (
+                      <option key={key} value={value}>
+                        {value}
+                      </option>
+                    )
+                  )}
+
+                {type === TYPES.PUBLICATION &&
+                  Object.entries(tagsData.PUBLICATION_TAGS || {}).map(
+                    ([key, value]) => (
+                      <option key={key} value={value}>
+                        {value}
+                      </option>
+                    )
+                  )}
               </select>
             </div>
-
-            {/* Images Upload */}
+            {/* Image Upload */}
             <div className="mb-4">
               <label className="block text-gray-700 font-bold mb-2">
-                Images{" "}
-                {isKegiatanType && (
-                  <span className="text-sm text-gray-500">
-                    (Maximum 1 image)
-                  </span>
-                )}
+                Upload Image
               </label>
               <input
                 type="file"
                 accept="image/*"
-                multiple={!isKegiatanType}
-                onChange={handleImagesChange}
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const maxSize = 15 * 1024 * 1024; // 15 MB
+                    if (file.size > maxSize) {
+                      Swal.fire(
+                        "Error",
+                        `Maksimal ukuran foto 15 MB!`,
+                        "error"
+                      );
+                      e.target.value = ""; // reset input
+                      return;
+                    }
+
+                    // Tambahkan file ke array images
+                    const newImage = {
+                      file,
+                      preview: URL.createObjectURL(file),
+                    };
+                    setImages((prev) => [...prev, newImage]);
+                  }
+                }}
                 className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400"
               />
+
+              {/* Preview */}
               <div className="grid grid-cols-3 gap-4 mt-4">
                 {images.map((image, index) => (
                   <div key={index} className="relative">
@@ -365,7 +418,9 @@ function NewArticle() {
                     />
                     <button
                       type="button"
-                      onClick={() => handleRemoveImage(index)}
+                      onClick={() => {
+                        setImages((prev) => prev.filter((_, i) => i !== index));
+                      }}
                       className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition-colors"
                       title="Remove image"
                     >

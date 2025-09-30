@@ -1,10 +1,12 @@
 {
-  "TAGS": {
+  "KEGIATAN_TAGS": {
     "BERITA": "Berita",
     "ARTIKEL": "Artikel",
     "OPINI": "Opini",
     "PENGUMUMAN": "Pengumuman",
-    "KEGIATAN": "Kegiatan",
+    "KEGIATAN": "Kegiatan"
+  },
+  "PUBLICATION_TAGS": {
     "EDARAN": "Edaran",
     "LAPORAN": "Laporan",
     "PERATURAN": "Peraturan"

@@ -26,7 +26,7 @@ function GetArticle() {
     subtitle: "",
     body: "",
     type: "",
-    tags: "", // new field
+    tags: "",
     image: [],
     thumbnail: null,
     linkDownload: "",
@@ -53,14 +53,14 @@ function GetArticle() {
           subtitle: article.subtitle || "",
           body: article.body,
           type: article.type ? article.type.toLowerCase() : "",
-          tags: article.tags,
+          tags: article.tags || "",
           image: article.images || [],
           thumbnail: article.thumbnail || null,
           linkDownload: article.linkDownload || "",
           createdAt: formattedDate,
         });
         setLoading(false);
-        Swal.close(); // Close the loading modal here
+        Swal.close();
       })
       .catch((error) => {
         console.error("Error fetching article data:", error);
@@ -88,22 +88,26 @@ function GetArticle() {
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
 
-    // For kegiatan type, limit to 1 image total
+    // Validasi ukuran
+    for (let file of files) {
+      if (file.size > 15 * 1024 * 1024) {
+        Swal.fire("Error", `File ${file.name} lebih dari 15 MB!`, "error");
+        return;
+      }
+    }
+
+    // Kalau type kegiatan, maksimal 1 foto
     if (formData.type.toLowerCase() === "kegiatan") {
       if (formData.image.length >= 1) {
         Swal.fire(
           "Error",
-          "For kegiatan, you can only have 1 image. Please remove the existing image first.",
+          "Untuk kegiatan hanya boleh 1 foto. Hapus foto lama dulu.",
           "error"
         );
         return;
       }
       if (files.length > 1) {
-        Swal.fire(
-          "Error",
-          "For kegiatan, please select only 1 image at a time.",
-          "error"
-        );
+        Swal.fire("Error", "Untuk kegiatan hanya bisa pilih 1 foto.", "error");
         return;
       }
     }
@@ -186,8 +190,7 @@ function GetArticle() {
           }
         });
 
-        // Attach removed images
-        if (Array.isArray(removedImages) && removedImages.length > 0) {
+        if (removedImages.length > 0) {
           removedImages.forEach((image) => {
             payload.append("removedImages[]", image);
           });
@@ -233,6 +236,11 @@ function GetArticle() {
   const isPublikasi = formData.type.toLowerCase() === "publication";
   const isKegiatan = formData.type.toLowerCase() === "kegiatan";
 
+  // Tentukan opsi tags sesuai type
+  const tagOptions = isPublikasi
+    ? tagsData.PUBLICATION_TAGS
+    : tagsData.KEGIATAN_TAGS;
+
   return (
     <>
       {loading ? (
@@ -252,7 +260,7 @@ function GetArticle() {
             onSubmit={handleSubmit}
             className="bg-white shadow-md rounded-lg p-6"
           >
-            {/* Title Input */}
+            {/* Title */}
             <div className="mb-4">
               <label className="block text-gray-700 font-bold mb-2">
                 Title
@@ -267,7 +275,7 @@ function GetArticle() {
               />
             </div>
 
-            {/* Subtitle Input */}
+            {/* Subtitle */}
             <div className="mb-4">
               <label className="block text-gray-700 font-bold mb-2">
                 Subtitle
@@ -281,7 +289,7 @@ function GetArticle() {
               />
             </div>
 
-            {/* Date - Show for both publikasi and kegiatan types */}
+            {/* Date */}
             {(isPublikasi || isKegiatan) && (
               <div className="mb-4">
                 <label className="block text-gray-700 font-bold mb-2">
@@ -298,7 +306,7 @@ function GetArticle() {
               </div>
             )}
 
-            {/* Body Textarea - Hide for publikasi type */}
+            {/* Body */}
             {!isPublikasi && (
               <>
                 <div className="mb-4">
@@ -307,13 +315,13 @@ function GetArticle() {
                   </label>
                   <textarea
                     name="body"
-                    value={formData.body.replace(/<br\s*\/?>/g, "\n")} // Convert <br> to newlines for editing
+                    value={formData.body.replace(/<br\s*\/?>/g, "\n")}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         body: e.target.value.replace(/\n/g, "<br />"),
                       })
-                    } // Convert newlines back to <br />
+                    }
                     className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-400"
                     rows="6"
                     required
@@ -333,7 +341,7 @@ function GetArticle() {
               </>
             )}
 
-            {/* Show message for publikasi type */}
+            {/* Info Publikasi */}
             {isPublikasi && (
               <div className="mb-4 p-4 border rounded-lg bg-blue-50 border-blue-200">
                 <p className="text-blue-700 font-medium">
@@ -344,7 +352,7 @@ function GetArticle() {
               </div>
             )}
 
-            {/* Type Display */}
+            {/* Type */}
             <div className="mb-4">
               <label className="block text-gray-700 font-bold mb-2">Type</label>
               <input
@@ -355,7 +363,8 @@ function GetArticle() {
                 className="w-full px-3 py-2 border rounded-lg bg-gray-100"
               />
             </div>
-            {/* Tags Select */}
+
+            {/* Tags */}
             <div className="mb-4">
               <label className="block text-gray-700 font-bold mb-2">Tags</label>
               <select
@@ -370,15 +379,15 @@ function GetArticle() {
                     Select Tag
                   </option>
                 )}
-                {Object.keys(tagsData.TAGS).map((key) => (
+                {Object.keys(tagOptions).map((key) => (
                   <option key={key} value={key.toLowerCase()}>
-                    {tagsData.TAGS[key]}
+                    {tagOptions[key]}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Pictures Upload */}
+            {/* Images */}
             <div className="mb-4">
               <label className="block text-gray-700 font-bold mb-2">
                 Images{" "}
@@ -436,7 +445,7 @@ function GetArticle() {
               />
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <div className="flex justify-end">
               <button
                 type="submit"
