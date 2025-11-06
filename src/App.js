@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./AuthContext";
 import "./App.css";
@@ -32,7 +32,7 @@ function App() {
   const { isAuthenticated } = useContext(AuthContext);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {/* Login */}
         <Route
@@ -90,7 +90,7 @@ function App() {
         {/* Fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
