@@ -2,7 +2,7 @@
   "name": "blog-admin",
   "version": "0.1.0",
   "private": true,
-  "homepage": ".",
+  "homepage": "/",
   "proxy": "https://7856-3-0-60-78.ngrok-free.app",
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.4.2",
