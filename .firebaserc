@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "aeml-website"
+  },
+  "targets": {
+    "aeml-website": {
+      "hosting": {
+        "adminSite": [
+          "admin-aeml"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
