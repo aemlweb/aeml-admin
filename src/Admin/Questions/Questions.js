@@ -8,6 +8,7 @@ import {
   faPen,
   faToggleOn,
   faToggleOff,
+  faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -17,7 +18,7 @@ import Loading from "../../layouts/Loading";
 import axios from "axios";
 import Domain, { AuthToken } from "../../Api/Api";
 
-function QuestionsData({ questions, onToggleStatus }) {
+function QuestionsData({ questions, onToggleStatus, onDelete }) {
   const handleToggleStatus = async (questionId, currentStatus) => {
     try {
       // If trying to activate a question, show warning about deactivating others
@@ -66,6 +67,33 @@ function QuestionsData({ questions, onToggleStatus }) {
       }
     } catch (error) {
       Swal.fire("Error", "Failed to update question status", "error");
+    }
+  };
+
+  const handleDelete = async (questionId, questionText) => {
+    try {
+      const result = await Swal.fire({
+        title: "Delete Question?",
+        html: `Are you sure you want to delete this question?<br/><br/><strong>"${questionText.substring(
+          0,
+          100
+        )}${
+          questionText.length > 100 ? "..." : ""
+        }"</strong><br/><br/>This action cannot be undone!`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+      });
+
+      if (result.isConfirmed) {
+        await onDelete(questionId);
+        Swal.fire("Deleted!", "Question has been deleted.", "success");
+      }
+    } catch (error) {
+      Swal.fire("Error", "Failed to delete question", "error");
     }
   };
 
@@ -133,6 +161,13 @@ function QuestionsData({ questions, onToggleStatus }) {
                     <FontAwesomeIcon
                       icon={q.isActive === true ? faToggleOn : faToggleOff}
                     />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(q.id, q.question)}
+                    className="text-red-600 hover:text-red-800"
+                    title="Delete"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </td>
               </tr>
@@ -217,6 +252,19 @@ function Questions() {
     } catch (error) {
       console.error("Error updating question status:", error);
       throw new Error("Failed to update question status");
+    }
+  };
+
+  const handleDelete = async (questionId) => {
+    try {
+      // Call the API to delete the question
+      await ApiService.deleteItem("questions", questionId);
+
+      // Update local state by removing the deleted question
+      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      throw new Error("Failed to delete question");
     }
   };
 
@@ -321,6 +369,7 @@ function Questions() {
           <QuestionsData
             questions={questions}
             onToggleStatus={handleToggleStatus}
+            onDelete={handleDelete}
           />
         </>
       )}

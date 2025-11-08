@@ -1,8 +1,9 @@
-// ApiService.js - Fixed Version
+// ApiService.js - Complete Version with Delete
 import Domain from "../../Api/Api";
 import { AuthToken } from "../../Api/Api";
 
 const ApiService = {
+  // Fetch list of items
   fetchList: async (endpoint) => {
     try {
       const response = await fetch(`${Domain()}/${endpoint}`, {
@@ -22,6 +23,7 @@ const ApiService = {
     }
   },
 
+  // Fetch single item by ID
   fetchItem: async (endpoint, id) => {
     try {
       const response = await fetch(`${Domain()}/${endpoint}/${id}`, {
@@ -41,6 +43,7 @@ const ApiService = {
     }
   },
 
+  // Create item with FormData
   createItem: async (endpoint, formData) => {
     console.log("Creating item with formData:", formData);
     try {
@@ -63,6 +66,7 @@ const ApiService = {
     }
   },
 
+  // Create question specifically
   createQuestions: async (question) => {
     try {
       const response = await fetch(`${Domain()}/questions`, {
@@ -85,6 +89,7 @@ const ApiService = {
     }
   },
 
+  // Update item with FormData
   updateItem: async (endpoint, id, formData) => {
     try {
       const response = await fetch(`${Domain()}/${endpoint}/${id}`, {
@@ -94,6 +99,11 @@ const ApiService = {
         },
         body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       return response.json();
     } catch (error) {
       console.error("Error updating item:", error);
@@ -101,22 +111,7 @@ const ApiService = {
     }
   },
 
-  deleteItem: async (endpoint, id) => {
-    try {
-      const response = await fetch(`${Domain()}/${endpoint}/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${AuthToken()}`,
-        },
-      });
-      return response.json();
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      throw error;
-    }
-  },
-
-  // 🆕 NEW: Helper method for updating questions specifically
+  // Update question specifically
   updateQuestion: async (id, questionText) => {
     try {
       const response = await fetch(`${Domain()}/questions/${id}`, {
@@ -136,6 +131,29 @@ const ApiService = {
       return response.json();
     } catch (error) {
       console.error("Error updating question:", error);
+      throw error;
+    }
+  },
+
+  // Delete item by ID
+  deleteItem: async (endpoint, id) => {
+    try {
+      const response = await fetch(`${Domain()}/${endpoint}/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${AuthToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Some APIs return empty response on successful delete
+      const text = await response.text();
+      return text ? JSON.parse(text) : { success: true };
+    } catch (error) {
+      console.error("Error deleting item:", error);
       throw error;
     }
   },
